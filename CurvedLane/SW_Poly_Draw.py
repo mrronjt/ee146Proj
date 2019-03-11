@@ -16,6 +16,8 @@ import cv2
 import glob
 import matplotlib.pyplot as plt
 import pickle
+from moviepy.editor import VideoFileClip
+
 
 class lane_detection():
     
@@ -90,12 +92,23 @@ class lane_detection():
         combined_binary = np.zeros_like(sxbinary)
         combined_binary[(s_binary == 1) | (sxbinary == 1)] = 1
         return combined_binary
+
+#    self.src = np.float32([(0.38,0.42),(0.56,0.42),(0.14,0.83),(0.90,0.83)]) #for cal
+#    self.dst=np.float32([(0.05,0), (0.9, 0), (0.1,1), (0.9,1)])
     
-    def perspective_warp(self, img, 
+    def perspective_warp(self, img, src=self.src, dst=self.dst
                          #dst_size=(img.shape[1],img.shape[0]),
                          #dst_size=(1280,720),
-                         src=np.float32([(0.43,0.65),(0.58,0.65),(0.1,1),(1,1)]),
-                         dst=np.float32([(0,0), (1, 0), (0,1), (1,1)])):
+                         #src=np.float32([(0.43,0.65),(0.58,0.65),(0.1,1),(1,1)]),#for original test image 
+                         #(550,302),(742,302),(128,720),(1280,720)
+                         #src=np.float32([(0.45,0.51),(0.49,0.51),(0.36,0.76),(0.60,0.76)]), #for CULane
+                         #(600,450),(1000,450),(750,250),(800,250) for 1640 x 590
+                         #src=np.float32([(0.40,0.45),(0.48,0.45),(0.30,0.76),(0.66,0.76)]), #for CULane
+                         #(700,250),(800,250),(500,450),(1050,450) for 1640 x 590
+#                             src=np.float32([(0.38,0.42),(0.56,0.42),(0.14,0.83),(0.90,0.83)]), #for cal
+                         #(250,350),(350,350),(170,450),(500,450) for 640 x 480
+#                             dst=np.float32([(0.05,0), (0.9, 0), (0.1,1), (0.9,1)])
+                         ):
         dst_size=(img.shape[1],img.shape[0])
         img_size = np.float32([(img.shape[1],img.shape[0])])
         src = src* img_size
@@ -109,9 +122,16 @@ class lane_detection():
         warped = cv2.warpPerspective(img, M, dst_size)
         return warped
     
-    def inv_PT(self, img, #dst_size=(img.shape[1],img.shape[0]),
-                         src=np.float32([(0,0), (1, 0), (0,1), (1,1)]),
-                         dst=np.float32([(0.43,0.65),(0.58,0.65),(0.1,1),(1,1)])):
+    def inv_PT(self, img, src=self.dst, dst=self.src#dst_size=(img.shape[1],img.shape[0]),
+#                         src=np.float32([(0.1,0), (0.9, 0), (0.1,1), (0.9,1)]),
+#                                        src=np.float32([(0.05,0), (0.9, 0), (0.1,1), (0.9,1)]),
+#                         dst=np.float32([(0.43,0.65),(0.58,0.65),(0.1,1),(1,1)])#for original test image
+                         #dst=np.float32([(0.45,0.51),(0.49,0.51),(0.36,0.76),(0.60,0.76)]), #for CULane
+                         #dst=np.float32([(0.40,0.45),(0.48,0.45),(0.30,0.76),(0.66,0.76)]), #for CULane
+                         #(700,250),(800,250),(500,450),(1050,450) for 1640 x 590
+#                                         dst=np.float32([(0.38,0.42),(0.56,0.42),(0.14,0.83),(0.90,0.83)]), #for cal
+                         #(250,350),(350,350),(170,450),(500,450) for 640 x 480
+                         ):
         dst_size=(img.shape[1],img.shape[0])
         img_size = np.float32([(img.shape[1],img.shape[0])])
         src = src* img_size
@@ -138,10 +158,11 @@ class lane_detection():
     
     #input: warped filtered image
     #output: arrays of pixels belong to left lane and right lane
-    def SlidingWindow(self, BiWarped_img, nWindows=10, margin=50, minP=1 ):
+    def SlidingWindow(self, BiWarped_img, nWindows=10, margin=10, minP=1 ):
         hist = self.get_hist(BiWarped_img)
         leftstart = np.argmax(hist[ : np.int(hist.shape[0] // 2)]) #index(x value) of max pixel in left of histogram
         rightstart = np.argmax(hist[np.int(hist.shape[0] // 2) : ]) + np.int(hist.shape[0] // 2) #index of max pixel in right of histogram
+        print(rightstart)
         opImg = np.dstack((BiWarped_img,BiWarped_img,BiWarped_img))*255
         #print("leftstart is " + str(leftstart))
         #print("rightstart is " + str(rightstart))
@@ -177,12 +198,12 @@ class lane_detection():
 #            print ("width is " + str(BiWarped_img.shape[1]))
 #            #if the window touches the border(may happen under big curve)
             #terminate the loop
-            #print(win)
+#            print(win)
             #if BiWarped_img[nonzeroP[1][leftXR]] >= self.img.shape[1] or BiWarped_img[nonzeroP[1][leftXL]] <= 0 or BiWarped_img[nonzeroP[1][rightXR]] >= self.img.shape[1] or BiWarped_img[nonzeroP[1][rightXL]] <= 0:
             if leftXL <= 0 or rightXL <= 0 or leftXR >= BiWarped_img.shape[1]  or rightXR >= BiWarped_img.shape[1]:
                 break
                 
-           # print("Passed if statement")
+#            print("Passed if statement")
             
             #detect pixels that are located in current window
             #store their index in array nonzeroP
@@ -195,21 +216,27 @@ class lane_detection():
             
             #pInWinL = ((nzPy >= YLow) & (nzPy < YHigh) & (nzPx >= leftXL) &  (nzPx < leftXR)).nonzero()[0]
             #pInWinR = ((nzPy >= YLow) & (nzPy < YHigh) & (nzPx >= rightXL) &  (nzPx < rightXR)).nonzero()[0]
-            
+            print(win)
+#            print("pInWinL size is "+ str(pInWinL.shape))
+#           print("pinWinL is "+ str(pInWinL))
+#            print("pinWinR is "+ str(pInWinR))
             left_lane_ind.append(pInWinL)
             right_lane_ind.append(pInWinR)
             
             
-            if len(left_lane_ind) > minP:
+#            if len(left_lane_ind) > minP:
+            if len(pInWinL) > minP:
                 leftstart = np.int(np.mean(nonzeroP[1][pInWinL]))
                 #leftstart = np.int(np.mean(nzPx[pInWinL]))
             else:
                 leftstart = leftstart + margin
-            if len(right_lane_ind) > minP:
+#            if len(right_lane_ind) > minP:
+            if len(pInWinR) > minP:
                 rightstart = np.int(np.mean(nonzeroP[1][pInWinR]))
                 #rightstart = np.int(np.mean(nzPx[pInWinR]))
             else:
-                rightstart = rightstart + margin
+                
+                rightstart = rightstart - margin
             
             #draw a green square on image
             cv2.rectangle(opImg, (leftXL, YHigh),(leftXR, YLow),[255, 0, 0], 1)
@@ -222,6 +249,7 @@ class lane_detection():
         leftY = nonzeroP[0][left_lane_ind]
         rightX = nonzeroP[1][right_lane_ind]
         rightY = nonzeroP[0][right_lane_ind]
+        
     
         return opImg, (leftX, leftY), (rightX, rightY), (left_lane_ind, right_lane_ind)
         
@@ -282,28 +310,28 @@ class lane_detection():
         plt.imshow
         yrange = np.linspace(0, img.shape[0]-1, img.shape[0])
         
-        print("yrange size is " + str(yrange.shape))
-        print("polyL size is " + str(polyL.shape))
-        #print(polyL)
+#        print("yrange size is " + str(yrange.shape))
+#        print("polyL size is " + str(polyL.shape))
+#        #print(polyL)
         leftPoints = np.array([np.transpose(np.vstack([polyL,yrange]))])
-        print("leftpoint size is "+ str(leftPoints.shape))
+#        print("leftpoint size is "+ str(leftPoints.shape))
         rightPoints = np.array([np.flipud(np.transpose(np.vstack([polyR,yrange])))])
-        print("rightpoint size is "+ str(rightPoints.shape))
+#        print("rightpoint size is "+ str(rightPoints.shape))
         PolyPoints = np.hstack((leftPoints, rightPoints))
         #PolyPoints = np.int32(PolyPoints)
         #print("polyPoint type is " + str(type((PolyPoints[3]))))
         #PolyPoints = np.array([PolyPoints], dtype = np.int32)
-        print('PolyPoint is '+ str(PolyPoints.shape))
+#        print('PolyPoint is '+ str(PolyPoints.shape))
 #        PolyPoints = PolyPoints.reshape(-1,1,2)
-        print('PolyPoint shape is '+ str(PolyPoints.shape))
+#        print('PolyPoint shape is '+ str(PolyPoints.shape))
         #cv2.fillPoly(LaneMask, np.array([PolyPoints], np.int32), (84, 113, 170))
         cv2.fillPoly(LaneMask, np.int_(PolyPoints), (84, 113, 170))
         
         #cv2.fillPoly(LaneMask, np.array([PolyPoints], 'int32'), (84, 113, 170))
         #cv2.fillPoly(LaneMask, np.int32([PolyPoints]), (84, 113, 170))
         inv = self.inv_PT(LaneMask)
-        print('inv is here')
-        plt.imshow(inv)
+        #print('inv is here')
+        #plt.imshow(inv)
         inv = cv2.addWeighted(img, 1, inv, 0.9,0)
         return inv
         
@@ -311,19 +339,37 @@ class lane_detection():
      
     def __init__(self):
         
-        self.img = cv2.imread('test_images/test1.jpg', cv2.IMREAD_COLOR)
-        
+        self.img = cv2.imread('test_images/cordova1/f00030.png', cv2.IMREAD_COLOR)
+#        self.img = cv2.imread('test_images/test1.jpg')
+        self.src = np.float32([(0.38,0.42),(0.56,0.42),(0.14,0.83),(0.90,0.83)]) #for cal
+        self.dst= np.float32([(0.05,0), (0.9, 0), (0.1,1), (0.9,1)])
+    
     
     
     def main(self):
         self.img = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
+        plt.figure()
+        plt.imshow(self.img)
         dst = self.pipeline(self.img)#threshold 
         dst = self.perspective_warp(dst)
+        plt.figure()
+        plt.imshow(dst)
         opImg, leftCoor, rightCoor, PixelOrder = self.SlidingWindow(dst)
         opImg, polyL, polyR = self.PolyFit(leftCoor, rightCoor, PixelOrder[0], PixelOrder[1], dst)
         OverlayedImg = self.DrawDetectedLane(polyL, polyR, self.img)
         plt.figure()
         plt.imshow(OverlayedImg)
+        
+    def forVid(self, img):
+        dst = self.pipeline(img)#threshold 
+        dst = self.perspective_warp(dst)
+        opImg, leftCoor, rightCoor, PixelOrder = self.SlidingWindow(dst)
+        opImg, polyL, polyR = self.PolyFit(leftCoor, rightCoor, PixelOrder[0], PixelOrder[1], dst)
+        OverlayedImg = self.DrawDetectedLane(polyL, polyR, img)
+        
+        return OverlayedImg
+        
+        
 
 
 
@@ -336,6 +382,11 @@ if __name__ == '__main__':
     #cv2.destroyAllWindows()
     lane = lane_detection()
     lane.main()
+#    myclip = VideoFileClip('test_images/cordova1/cordova1.mp4')
+#    myclip = VideoFileClip("challenge_video.mp4")
+    output_vid = 'opVideo.mp4'
+#    clip = myclip.fl_image(lane.forVid)
+#    clip.write_videofile(output_vid, audio=False)
     
 
 #img = cv2.imread('test_images/test1.jpg')#input image
