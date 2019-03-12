@@ -361,6 +361,9 @@ class lane_detection():
 #        plt.figure()
 #        plt.imshow(dst)
         opImg, leftCoor, rightCoor, PixelOrder = self.SlidingWindow(dst)
+        plt.figure()
+        plt.imshow(opImg)
+        
         opImg, polyL, polyR = self.PolyFit(leftCoor, rightCoor, PixelOrder[0], PixelOrder[1], dst)
         OverlayedImg = self.DrawDetectedLane(polyL, polyR, self.img)
         plt.figure()
@@ -374,6 +377,7 @@ class lane_detection():
 #        plt.imshow(dst)
         opImg, leftCoor, rightCoor, PixelOrder = self.SlidingWindow(dst)
 #        if len(leftCoor) != 0 & len(rightCoor) != 0:
+        
         opImg, polyL, polyR = self.PolyFit(leftCoor, rightCoor, PixelOrder[0], PixelOrder[1], dst)
         OverlayedImg = self.DrawDetectedLane(polyL, polyR, img)
 #        else:
@@ -393,13 +397,13 @@ if __name__ == '__main__':
     #cv2.waitKey(0)
     #cv2.destroyAllWindows()
     lane = lane_detection()
-#    lane.main()
+    lane.main()
 #    myclip = VideoFileClip('test_images/cordova1.mp4')
-#    myclip = VideoFileClip("project_video.mp4")
-    myclip = VideoFileClip("test.mp4")
+    myclip = VideoFileClip("project_video.mp4")
+#    myclip = VideoFileClip("test.mp4")
     output_vid = 'opVideo.mp4'
-    clip = myclip.fl_image(lane.forVid)
-    clip.write_videofile(output_vid, audio=False)
+#    clip = myclip.fl_image(lane.forVid)
+#    clip.write_videofile(output_vid, audio=False)
     
 
 #img = cv2.imread('test_images/test1.jpg')#input image

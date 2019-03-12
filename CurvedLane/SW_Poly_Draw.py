@@ -96,7 +96,7 @@ class lane_detection():
 #    self.src = np.float32([(0.38,0.42),(0.56,0.42),(0.14,0.83),(0.90,0.83)]) #for cal
 #    self.dst=np.float32([(0.05,0), (0.9, 0), (0.1,1), (0.9,1)])
     
-    def perspective_warp(self, img, src=self.src, dst=self.dst
+    def perspective_warp(self, img#, #src=self.src, dst=self.dst
                          #dst_size=(img.shape[1],img.shape[0]),
                          #dst_size=(1280,720),
                          #src=np.float32([(0.43,0.65),(0.58,0.65),(0.1,1),(1,1)]),#for original test image 
@@ -107,8 +107,10 @@ class lane_detection():
                          #(700,250),(800,250),(500,450),(1050,450) for 1640 x 590
 #                             src=np.float32([(0.38,0.42),(0.56,0.42),(0.14,0.83),(0.90,0.83)]), #for cal
                          #(250,350),(350,350),(170,450),(500,450) for 640 x 480
-#                             dst=np.float32([(0.05,0), (0.9, 0), (0.1,1), (0.9,1)])
+#                             dst=np.float32([(0,0), (1, 0), (0,1), (1,1)])
                          ):
+        src = self.src
+        dst = self.dst
         dst_size=(img.shape[1],img.shape[0])
         img_size = np.float32([(img.shape[1],img.shape[0])])
         src = src* img_size
@@ -122,16 +124,19 @@ class lane_detection():
         warped = cv2.warpPerspective(img, M, dst_size)
         return warped
     
-    def inv_PT(self, img, src=self.dst, dst=self.src#dst_size=(img.shape[1],img.shape[0]),
+    def inv_PT(self, img#, #src=self.dst, dst=self.src#dst_size=(img.shape[1],img.shape[0]),
 #                         src=np.float32([(0.1,0), (0.9, 0), (0.1,1), (0.9,1)]),
+#                             src=np.float32([(0,0), (1, 0), (0,1), (1,1)]),             
 #                                        src=np.float32([(0.05,0), (0.9, 0), (0.1,1), (0.9,1)]),
 #                         dst=np.float32([(0.43,0.65),(0.58,0.65),(0.1,1),(1,1)])#for original test image
                          #dst=np.float32([(0.45,0.51),(0.49,0.51),(0.36,0.76),(0.60,0.76)]), #for CULane
                          #dst=np.float32([(0.40,0.45),(0.48,0.45),(0.30,0.76),(0.66,0.76)]), #for CULane
                          #(700,250),(800,250),(500,450),(1050,450) for 1640 x 590
-#                                         dst=np.float32([(0.38,0.42),(0.56,0.42),(0.14,0.83),(0.90,0.83)]), #for cal
-                         #(250,350),(350,350),(170,450),(500,450) for 640 x 480
+#                                         dst=np.float32([(0.38,0.42),(0.56,0.42),(0.14,0.83),(0.90,0.83)]) #for cal
+                         #(250,350),(350,350),(170,450),(500,450) for 640 x 480 0.83
                          ):
+        dst = self.src
+        src = self.dst
         dst_size=(img.shape[1],img.shape[0])
         img_size = np.float32([(img.shape[1],img.shape[0])])
         src = src* img_size
@@ -158,7 +163,7 @@ class lane_detection():
     
     #input: warped filtered image
     #output: arrays of pixels belong to left lane and right lane
-    def SlidingWindow(self, BiWarped_img, nWindows=10, margin=10, minP=1 ):
+    def SlidingWindow(self, BiWarped_img, nWindows=10, margin=50, minP=1 ):
         hist = self.get_hist(BiWarped_img)
         leftstart = np.argmax(hist[ : np.int(hist.shape[0] // 2)]) #index(x value) of max pixel in left of histogram
         rightstart = np.argmax(hist[np.int(hist.shape[0] // 2) : ]) + np.int(hist.shape[0] // 2) #index of max pixel in right of histogram
@@ -200,8 +205,8 @@ class lane_detection():
             #terminate the loop
 #            print(win)
             #if BiWarped_img[nonzeroP[1][leftXR]] >= self.img.shape[1] or BiWarped_img[nonzeroP[1][leftXL]] <= 0 or BiWarped_img[nonzeroP[1][rightXR]] >= self.img.shape[1] or BiWarped_img[nonzeroP[1][rightXL]] <= 0:
-            if leftXL <= 0 or rightXL <= 0 or leftXR >= BiWarped_img.shape[1]  or rightXR >= BiWarped_img.shape[1]:
-                break
+#            if leftXL <= 0 or rightXL <= 0 or leftXR >= BiWarped_img.shape[1]  or rightXR >= BiWarped_img.shape[1]:
+#                break
                 
 #            print("Passed if statement")
             
@@ -229,14 +234,15 @@ class lane_detection():
                 leftstart = np.int(np.mean(nonzeroP[1][pInWinL]))
                 #leftstart = np.int(np.mean(nzPx[pInWinL]))
             else:
-                leftstart = leftstart + margin
+                print('left + margin')
+                leftstart = leftstart #+ margin
 #            if len(right_lane_ind) > minP:
             if len(pInWinR) > minP:
                 rightstart = np.int(np.mean(nonzeroP[1][pInWinR]))
                 #rightstart = np.int(np.mean(nzPx[pInWinR]))
             else:
-                
-                rightstart = rightstart - margin
+                print('right + margin')
+                rightstart = rightstart #- margin
             
             #draw a green square on image
             cv2.rectangle(opImg, (leftXL, YHigh),(leftXR, YLow),[255, 0, 0], 1)
@@ -326,7 +332,8 @@ class lane_detection():
 #        print('PolyPoint shape is '+ str(PolyPoints.shape))
         #cv2.fillPoly(LaneMask, np.array([PolyPoints], np.int32), (84, 113, 170))
         cv2.fillPoly(LaneMask, np.int_(PolyPoints), (84, 113, 170))
-        
+#        plt.figure()
+#        plt.imshow(LaneMask)
         #cv2.fillPoly(LaneMask, np.array([PolyPoints], 'int32'), (84, 113, 170))
         #cv2.fillPoly(LaneMask, np.int32([PolyPoints]), (84, 113, 170))
         inv = self.inv_PT(LaneMask)
@@ -339,10 +346,11 @@ class lane_detection():
      
     def __init__(self):
         
-        self.img = cv2.imread('test_images/cordova1/f00030.png', cv2.IMREAD_COLOR)
+        self.img = cv2.imread('test_images/cordova1/f00010.png', cv2.IMREAD_COLOR)
 #        self.img = cv2.imread('test_images/test1.jpg')
-        self.src = np.float32([(0.38,0.42),(0.56,0.42),(0.14,0.83),(0.90,0.83)]) #for cal
-        self.dst= np.float32([(0.05,0), (0.9, 0), (0.1,1), (0.9,1)])
+        
+        self.src = np.float32([(0.45,0.42),(0.56,0.42),(0.14,0.83),(0.90,0.83)]) #for cal
+        self.dst= np.float32([(0.3,0), (0.9, 0), (0.1,1), (0.9,1)])
     
     
     
@@ -352,9 +360,10 @@ class lane_detection():
         plt.imshow(self.img)
         dst = self.pipeline(self.img)#threshold 
         dst = self.perspective_warp(dst)
-        plt.figure()
-        plt.imshow(dst)
         opImg, leftCoor, rightCoor, PixelOrder = self.SlidingWindow(dst)
+        plt.figure()
+        plt.imshow(opImg)
+        
         opImg, polyL, polyR = self.PolyFit(leftCoor, rightCoor, PixelOrder[0], PixelOrder[1], dst)
         OverlayedImg = self.DrawDetectedLane(polyL, polyR, self.img)
         plt.figure()
@@ -364,6 +373,7 @@ class lane_detection():
         dst = self.pipeline(img)#threshold 
         dst = self.perspective_warp(dst)
         opImg, leftCoor, rightCoor, PixelOrder = self.SlidingWindow(dst)
+        
         opImg, polyL, polyR = self.PolyFit(leftCoor, rightCoor, PixelOrder[0], PixelOrder[1], dst)
         OverlayedImg = self.DrawDetectedLane(polyL, polyR, img)
         
@@ -382,7 +392,7 @@ if __name__ == '__main__':
     #cv2.destroyAllWindows()
     lane = lane_detection()
     lane.main()
-#    myclip = VideoFileClip('test_images/cordova1/cordova1.mp4')
+    myclip = VideoFileClip('test_images/cordova1/cordova1.mp4')
 #    myclip = VideoFileClip("challenge_video.mp4")
     output_vid = 'opVideo.mp4'
 #    clip = myclip.fl_image(lane.forVid)
