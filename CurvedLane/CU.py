@@ -362,83 +362,112 @@ class lane_detection():
         
     
      
-    def __init__(self):
-        
-        self.img = cv2.imread('test_images/CU/CU1/00360.jpg', cv2.IMREAD_COLOR)
-#        self.img = cv2.imread('test_images/test1.jpg')
-        
-        self.src = np.float32([(0.45,0.50),(0.49,0.50),(0.30,0.68),(0.60,0.68)]) #for CU 1640 x 590 0.73
-        self.dst= np.float32([(0.4,0), (0.7, 0), (0,1), (0.9,1)])
-        self.direc = "./test_images/CU/CU1"
-        self.file_list = sorted(glob.glob(os.path.join(direc,"*.txt")))
-
     
     def readBenchMark(self, filename):
+        flag = 0;
 #        with open("./test_images/CU/CU1/00000.lines.txt","r") as fp:
         with open(filename,"r") as fp:
+#            print("opened")
+#            print(fp)
             for i, line in enumerate(fp):
+                
+#                print("at loop "+ str(i))
                 if i == 2:
+#                    print("in third")
+                    flag = 1;
                     third = line.split(' ') 
+#                    print(third[0])
                 if i == 1:
                     second = line.split(' ')
         #            print(third)
 #        print(second)
-        for i in range(len(third)-1):
-            third[i]=float(third[i])#make a list of float
-        for i in range(len(second)-1):
-            second[i]=float(second[i])#make a list of float
+#        print("here")
+        if flag == 1:
+            for i in range(len(third)-1):
+                third[i]=float(third[i])#make a list of float
+            for i in range(len(second)-1):
+                second[i]=float(second[i])#make a list of float
         
             
-        third = third[:-1]
-        second = second[:-1]
-        rightx=[]
-        righty=[]
-        leftx=[]
-        lefty=[]
-        for i in range(0,len(third)-1,2):
+            third = third[:-1]
+            second = second[:-1]
+            rightx=[]
+            righty=[]
+            leftx=[]
+            lefty=[]
+            for i in range(0,len(third)-1,2):
+                
+                rightx.append(third[i])
+                righty.append(third[i+1])
+            for i in range(0,len(second)-1,2):
+                
+                leftx.append(second[i])
+                lefty.append(second[i+1])
             
-            rightx.append(third[i])
-            righty.append(third[i+1])
-        for i in range(0,len(second)-1,2):
             
-            leftx.append(second[i])
-            lefty.append(second[i+1])
+            iter=0;
+            leftxx=[];
+            rightxx=[];
+            leftyy=[];
+            rightyy=[];
+            print('leftx len is '+ str(len(leftx)))
+            while len(leftxx) < 10:
+    #            print("len is " + str(len(leftxx)))
+    #            print(iter)
+                if iter >= len(leftx):
+                    iter = len(leftx) -1
+                leftxx.append(leftx[iter])
+                rightxx.append(rightx[iter])
+                leftyy.append(lefty[iter])
+                rightyy.append(righty[iter])
+    #            print("len is " + str(len(leftxx)))
+                iter = iter + 3
+        else:
+            leftxx=0
+            leftyy=0
+            rightxx=0
+            rightyy=0
         
         
-        iter=0;
-        leftxx=[];
-        rightxx=[];
-        leftyy=[];
-        rightyy=[];
-        while len(leftxx) < 10:
-            leftxx.append(leftx[iter])
-            rightxx.append(rightx[iter])
-            leftyy.append(lefty[iter])
-            rightyy.append(righty[iter])
-            iter = iter + 3
-            
-        
-        return (leftxx, leftyy),  (rightxx,rightyy)
+        return (leftxx, leftyy),  (rightxx,rightyy), flag
     
     def calError(self, myleft, myright, slide, file):
-        Bleft, Bright = self.readBenchMark(file)
-        BleftX = np.asarray(Bleft[0],dtype=np.float32)
-        BleftY = np.asarray(Bleft[1])
-        BrightX = np.asarray(Bright[0])
-        BrightY = np.asarray(Bright[1])
-        slideleftX = np.asarray(slide[0])
-        sliderightX = np.asarray(slide[1])
-        slideY = np.array(slide[2])
-#        print(BleftX)
-#        print(slideY.shape)
-#        print(BleftX.shape)
-#        print("err is "+str(Bleft[0][1]+slide[0][1]))
-        print(type(slide[0]))
-#        leftError = np.mean(((slide[0]-BleftX)**2 + (slide[2]-BleftY)**2))
-#        rightError = np.mean(((slide[1]-BrightX)**2 + (slide[2]-BrightY)**2))
-        leftError = np.mean(np.sqrt((slideleftX-BleftX)**2 + (slideY-BleftY)**2))
-        rightError = np.mean(np.sqrt((sliderightX-BrightX)**2 + (slideY-BrightY)**2))
+        Bleft, Bright, flag = self.readBenchMark(file)
+        if flag == 1:
+            BleftX = np.asarray(Bleft[0],dtype=np.float32)
+            BleftY = np.asarray(Bleft[1])
+            BrightX = np.asarray(Bright[0])
+            BrightY = np.asarray(Bright[1])
+            slideleftX = np.asarray(slide[0])
+            sliderightX = np.asarray(slide[1])
+            slideY = np.array(slide[2])
+    #        print(BleftX)
+    #        print(slideY.shape)
+    #        print(BleftX.shape)
+    #        print("err is "+str(Bleft[0][1]+slide[0][1]))
+    #        print(type(slide[0]))
+    #        leftError = np.mean(((slide[0]-BleftX)**2 + (slide[2]-BleftY)**2))
+    #        rightError = np.mean(((slide[1]-BrightX)**2 + (slide[2]-BrightY)**2))
+            leftError = np.mean(np.sqrt((slideleftX-BleftX)**2 + (slideY-BleftY)**2))
+            rightError = np.mean(np.sqrt((sliderightX-BrightX)**2 + (slideY-BrightY)**2))
+        else:
+            leftError = 0
+            rightError = 0
         return leftError, rightError
+
+    
+    
+    def __init__(self):
+        
+        self.img = cv2.imread('test_images/CU/CU1/01800.jpg', cv2.IMREAD_COLOR)
+#        self.img = cv2.imread('test_images/test1.jpg')
+        
+        self.src = np.float32([(0.45,0.50),(0.49,0.50),(0.30,0.68),(0.60,0.68)]) #for CU 1640 x 590 0.73
+        self.dst= np.float32([(0.4,0), (0.7, 0), (0,1), (0.9,1)])
+#        self.direc = "./test_images/CU/CU1"
+#        self.direc = "./test_images/CU"
+        self.direc = "./test_images/CU/CU2"
+        self.file_list = sorted(glob.glob(os.path.join(direc,"*.txt")))
 
     
     
@@ -449,10 +478,11 @@ class lane_detection():
         dst = self.pipeline(self.img)#threshold 
         dst = self.perspective_warp(dst)
         opImg, leftCoor, rightCoor, PixelOrder, slide = self.SlidingWindow(dst)
-#        plt.figure()
-#        plt.imshow(opImg)
-        file = self.file_list[13]
-#        print(file)
+        plt.figure()
+        plt.imshow(opImg)
+        file = self.file_list[177]
+        print("file list len is "+str(len(self.file_list)))
+        print(file)
         if len(leftCoor)!= 0 and len(rightCoor)!= 0:
             leftError, rightError = self.calError(leftCoor, rightCoor, slide, file)
             opImg, polyL, polyR = self.PolyFit(leftCoor, rightCoor, PixelOrder[0], PixelOrder[1], dst)
@@ -466,23 +496,25 @@ class lane_detection():
         
     def forVid(self, img):
         global counter
-        counter = counter + 1
+        
         print("mycounter: ", str(counter))
         dst = self.pipeline(img)#threshold 
         dst = self.perspective_warp(dst)
         opImg, leftCoor, rightCoor, PixelOrder, slide = self.SlidingWindow(dst)
         if counter <= len(self.file_list)-1:
             file = self.file_list[counter]
+            if len(leftCoor[0])!= 0 and len(leftCoor[1])!= 0 and len(rightCoor[0])!= 0 and len(rightCoor[1])!= 0:
+                leftError, rightError = self.calError(leftCoor, rightCoor, slide, file)
+    #            print("length is "+ str(len(leftCoor)))
+                opImg, polyL, polyR = self.PolyFit(leftCoor, rightCoor, PixelOrder[0], PixelOrder[1], dst)
+                OverlayedImg = self.DrawDetectedLane(polyL, polyR, img)
+                with open("ErrorOP.txt","a") as text_file:
+                    text_file.write("%f %f " % (leftError, rightError))
+            else:
+                return img
+        counter = counter + 1
         
         
-        if len(leftCoor[0])!= 0 and len(leftCoor[1])!= 0 and len(rightCoor[0])!= 0 and len(rightCoor[1])!= 0:
-            leftError, rightError = self.calError(leftCoor, rightCoor, slide, file)
-#            print("length is "+ str(len(leftCoor)))
-            opImg, polyL, polyR = self.PolyFit(leftCoor, rightCoor, PixelOrder[0], PixelOrder[1], dst)
-            OverlayedImg = self.DrawDetectedLane(polyL, polyR, img)
-        else:
-            return img
-            
         return OverlayedImg
         
         
@@ -497,12 +529,14 @@ if __name__ == '__main__':
     #cv2.waitKey(0)
     #cv2.destroyAllWindows()
     lane = lane_detection()
-    lane.main()
-    myclip = VideoFileClip('test_images/CU/CU1/CU1_5fps.mp4')
+#    lane.main()
+#    myclip = VideoFileClip('test_images/CU/CU1/CU1_5fps.mp4')
+    myclip = VideoFileClip('test_images/CU/CU2/CU2_5fps.mp4')
+     
 #    myclip = VideoFileClip("challenge_video.mp4")
-    output_vid = 'OP_CU1_5fps.mp4'
-#    clip = myclip.fl_image(lane.forVid)
-#    clip.write_videofile(output_vid, audio=False)
+    output_vid = 'OP_CU3_5fps.mp4'
+    clip = myclip.fl_image(lane.forVid)
+    clip.write_videofile(output_vid, audio=False)
     
 
 #img = cv2.imread('test_images/test1.jpg')#input image

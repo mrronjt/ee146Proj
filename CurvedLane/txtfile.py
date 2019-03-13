@@ -11,9 +11,9 @@ import glob , os
 
 direc = "./test_images/CU/CU1"
 file_list = sorted(glob.glob(os.path.join(direc,"*.txt")))
-print(file_list[179])
+#print(file_list[179])
 
-openf = file_list[10]
+openf = file_list[57]
 f = open(openf)
 with f as fp:
     for i, line in enumerate(fp):
@@ -44,7 +44,7 @@ for i in range(0,len(second)-1,2):
     leftx.append(second[i])
     lefty.append(second[i+1])
 
-print(leftx)
+print(len(leftx))
 
 
 #print(third[:-1]) #get rid of last element "/n
